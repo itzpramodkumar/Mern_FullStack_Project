@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+/* ===== GLOBAL THEME ===== */
+
+body {
+  @apply bg-[#0f172a] text-gray-100;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Glass Effect Cards */
+.glass {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  border-radius: 16px;
+}
+
+/* Neon Accent */
+.neon-green {
+  color: #22c55e;
+}
+
+.neon-border {
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.6);
+}
