@@ -1,4 +1,6 @@
+import { useEffect } from "react";
 import { useState } from "react";
+import { getBillingSettingApi, saveBillingSettingApi } from "../../api/billingSetting.api";
 
 const BillingSetting = () => {
   const [billing, setBilling] = useState({
@@ -12,6 +14,24 @@ const BillingSetting = () => {
     footerNote: "Thank you for choosing our petrol pump.",
   });
 
+  const [loading,setLoading]=useState(false);
+  // fetch Existing Setting
+  useEffect(()=>{
+    const fetchBillingSetting=async()=>{
+      try{
+        const res=await getBillingSettingApi();
+        if(res.data?.data){
+          setBilling(res.data.data);
+        }
+
+      }
+catch(error){
+  console.log(error)
+}
+    }
+    fetchBillingSetting();
+  },[]);
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setBilling({
@@ -20,9 +40,18 @@ const BillingSetting = () => {
     });
   };
 
-  const handleSave = () => {
-    console.log("Billing Settings:", billing);
-    alert("Billing & tax settings saved successfully");
+  const handleSave = async () => {
+    try{
+      setLoading(true);
+      await saveBillingSettingApi(billing);
+      alert("Billing &tax setting saved successfully")
+    }
+    catch(error){
+      console.log(error)
+      alert("failed to save billing");
+    }finally{
+      setLoading(false);
+    }
   };
 
   return (
