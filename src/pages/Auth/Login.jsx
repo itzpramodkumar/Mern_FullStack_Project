@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useMusic } from "../context/MusicContext"; 
+import { loginApi } from "../../api/auth.api";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -11,7 +12,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleLogin = (e) => {
+  const handleLogin =async (e) => {
     e.preventDefault();
     setError("");
 
@@ -19,17 +20,21 @@ const Login = () => {
       setError("All fields are required");
       return;
     }
-
+try{
     setLoading(true);
+    const res=await loginApi({email,password});
+    // token save
+    localStorage.setItem("token",res.data.token);
+    // dashboard
+    navigate("/dashboard");
+    playMusic();
+}
+catch(err){
+  setError( err.response?.data?.message || "Invalid email or password");
+}finally{
+  setLoading(false);
+}
 
-    // 🔒 Backend integration yahan aayega (JWT)
-    setTimeout(() => {
-      setLoading(false);
-
-      playMusic(); // 🎵 LOGIN SUCCESS → MUSIC START
-
-      navigate("/dashboard"); // login ke baad dashboard
-    }, 1200);
   };
 
   return (

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-
+import {signupApi } from "../../api/auth.api.js";
 const Signup = () => {
   const navigate = useNavigate();
 
@@ -18,7 +18,7 @@ const Signup = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSignup = (e) => {
+  const handleSignup = async (e) => {
     e.preventDefault();
     setError("");
 
@@ -39,13 +39,23 @@ const Signup = () => {
       return;
     }
 
-    setLoading(true);
+    // setLoading(true);
 
     // 🔒 Backend signup API yahan connect hoga
-    setTimeout(() => {
-      setLoading(false);
-      navigate("/"); // signup ke baad login page
-    }, 1500);
+try{
+  setLoading(true);
+  const res=await signupApi({
+name,email,password,confirmPassword
+  })
+  console.log("Signup success",res.data);
+  navigate("/") //loginPage
+}
+catch(err){
+console.log(err);
+}finally{
+  setLoading(false);
+}
+
   };
 
   return (
@@ -155,5 +165,4 @@ const Signup = () => {
     </div>
   );
 };
-
 export default Signup;
