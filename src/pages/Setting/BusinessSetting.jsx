@@ -1,4 +1,6 @@
+import { useEffect } from "react";
 import { useState } from "react";
+import { getBusinessSettingApi, saveBusinessSetting,  } from "../../api/BusinessSetting.Api.js";
 
 const BusinessSetting = () => {
   const [business, setBusiness] = useState({
@@ -11,6 +13,25 @@ const BusinessSetting = () => {
     openTime: "06:00",
     closeTime: "23:00",
   });
+  const [loading, setLoading]=useState(false);
+   
+  // GET API on The Page Load
+
+  useEffect(()=>{
+    const fetchBusinessSetting=async ()=>{
+      try {
+const res=await getBusinessSettingApi();
+if(res.data?.data){
+  setBusiness(res.data.data);
+}
+      }
+      catch(error){
+        console.log(error);
+      }
+    };
+    fetchBusinessSetting();
+  },[]
+  );
 
   const handleChange = (e) => {
     setBusiness({
@@ -19,9 +40,18 @@ const BusinessSetting = () => {
     });
   };
 
-  const handleSave = () => {
-    console.log("Business Settings:", business);
-    alert("Business settings saved successfully");
+  const handleSave =async () => {
+    try{
+      setLoading(true);
+      await saveBusinessSetting(business);
+      alert("Business setting saved successfully");
+    }
+    catch(error){
+      console.log(error);
+    }finally{
+      setLoading(false);
+    }
+   
   };
 
   return (
@@ -51,9 +81,7 @@ const BusinessSetting = () => {
 
         {/* Owner */}
         <div>
-          <label className="text-sm text-gray-400 mb-1 block">
-            Owner Name
-          </label>
+          <label className="text-sm text-gray-400 mb-1 block">Owner Name</label>
           <input
             name="ownerName"
             value={business.ownerName}
@@ -65,9 +93,7 @@ const BusinessSetting = () => {
         {/* GST + LICENSE */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="text-sm text-gray-400 mb-1 block">
-              GSTIN
-            </label>
+            <label className="text-sm text-gray-400 mb-1 block">GSTIN</label>
             <input
               name="gstin"
               value={business.gstin}
@@ -91,9 +117,7 @@ const BusinessSetting = () => {
 
         {/* ADDRESS */}
         <div>
-          <label className="text-sm text-gray-400 mb-1 block">
-            Address
-          </label>
+          <label className="text-sm text-gray-400 mb-1 block">Address</label>
           <textarea
             name="address"
             value={business.address}
