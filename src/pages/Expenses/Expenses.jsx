@@ -1,12 +1,9 @@
-import { useContext, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import Sidebar from "../../Component/common/Sidebar";
 import Navbar from "../../Component/common/Navbar";
 import { FuelContext } from "../context/FuelContext";
 import { fuelConfig } from "../Util/fuelConfig";
-// import ExpenseForm from "../../components/Forms/ExpenseForm";
-// import ExpenseBarChart from "../../components/Charts/ExpenseBarChart";
-// import SummaryCard from "../../components/Cards/SummaryCard";
-
+import { createexp, getexp } from "../../api/expense.api.js";
 
 const EXPENSE_TYPES = [
   "Salary",
@@ -16,64 +13,67 @@ const EXPENSE_TYPES = [
   "Miscellaneous",
 ];
 
-/* ===== DUMMY EXPENSE DATA (Backend later) ===== */
-const initialExpenses = [
-  {
-    id: 1,
-    date: "2026-08-03",
-    type: "Salary",
-    amount: 35000,
-    note: "Staff salary",
-  },
-  {
-    id: 2,
-    date: "2026-08-08",
-    type: "Electricity",
-    amount: 8200,
-    note: "Monthly bill",
-  },
-  {
-    id: 3,
-    date: "2026-08-15",
-    type: "Maintenance",
-    amount: 6400,
-    note: "Machine servicing",
-  },
-];
-
 const Expenses = () => {
   const { selectedFuel } = useContext(FuelContext);
   const fuel = fuelConfig[selectedFuel];
 
-  const [expenses, setExpenses] = useState(initialExpenses);
+  // ✅ IMPORTANT: array se init
+  const [expenses, setExpenses] = useState([]);
+
   const [date, setDate] = useState("");
   const [type, setType] = useState("");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
 
-  const totalExpense = useMemo(
-    () => expenses.reduce((sum, e) => sum + e.amount, 0),
-    [expenses]
-  );
+  // ✅ TOTAL EXPENSE (safe)
+  const totalExpense = useMemo(() => {
+    return expenses.reduce((sum, e) => sum + e.amount, 0);
+  }, [expenses]);
 
-  const handleAddExpense = () => {
-    if (!date || !type || !amount) return;
+  // ================= GET EXPENSES =================
+  const fetchExpenses = async () => {
+    try {
+      const res = await getexp();
+      // ⚠️ backend response ke hisab se yaha change ho sakta hai
+      setExpenses(res.data.data || res.data);
+    } catch (error) {
+      console.error("Failed to fetch expenses", error);
+    }
+  };
 
-    const newExpense = {
-      id: Date.now(),
-      date,
-      type,
-      amount: Number(amount),
-      note,
-      fuel: selectedFuel, // fuel-wise tagging
-    };
+  useEffect(() => {
+    fetchExpenses();
+  }, [selectedFuel]);
 
-    setExpenses((prev) => [newExpense, ...prev]);
+  // ================= ADD EXPENSE =================
+  const handleAddExpense = async () => {
+  if (!date || !type || !amount) return;
+
+  const newExpense = {
+  date,
+  type,
+  amount: Number(amount),
+  note,
+  fuelType: selectedFuel, // 👈 rename this
+};
+
+  try {
+    const res = await createexp(newExpense);
+    console.log("Expense saved:", res.data);
+
+    fetchExpenses();
+
     setDate("");
     setType("");
     setAmount("");
     setNote("");
-  };
+  } catch (error) {
+    console.error(
+      "Failed to add expense",
+      error.response?.data || error.message
+    );
+  }
+};
 
   return (
     <div className="flex min-h-screen bg-[#020617]">
@@ -82,7 +82,6 @@ const Expenses = () => {
       <div className="flex-1 flex flex-col">
         <Navbar />
 
-        {/* CONTENT */}
         <div className="p-6 space-y-6">
           {/* HEADER */}
           <div>
@@ -120,66 +119,46 @@ const Expenses = () => {
 
           {/* FORM + TABLE */}
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-            {/* ADD EXPENSE FORM */}
+            {/* ADD EXPENSE */}
             <div className="glass p-6 space-y-4">
               <h2 className="text-lg font-semibold mb-2">
                 Add Expense
               </h2>
 
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">
-                  Date
-                </label>
-                <input
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none"
-                />
-              </div>
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none"
+              />
 
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">
-                  Expense Type
-                </label>
-                <select
-                  value={type}
-                  onChange={(e) => setType(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none"
-                >
-                  <option value="">Select type</option>
-                  {EXPENSE_TYPES.map((t) => (
-                    <option key={t}>{t}</option>
-                  ))}
-                </select>
-              </div>
+              <select
+                value={type}
+                onChange={(e) => setType(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none"
+              >
+                <option value="">Select type</option>
+                {EXPENSE_TYPES.map((t) => (
+                  <option key={t}>{t}</option>
+                ))}
+              </select>
 
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">
-                  Amount (₹)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="Enter amount"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none"
-                />
-              </div>
+              <input
+                type="number"
+                min="0"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="Enter amount"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none"
+              />
 
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">
-                  Note (optional)
-                </label>
-                <textarea
-                  rows={3}
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  placeholder="Extra details…"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none"
-                />
-              </div>
+              <textarea
+                rows={3}
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="Extra details…"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none"
+              />
 
               <button
                 onClick={handleAddExpense}
@@ -189,7 +168,7 @@ const Expenses = () => {
               </button>
             </div>
 
-            {/* EXPENSES TABLE */}
+            {/* TABLE */}
             <div className="xl:col-span-2 glass p-6 overflow-x-auto">
               <h2 className="text-lg font-semibold mb-4">
                 Expense History
@@ -198,25 +177,25 @@ const Expenses = () => {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-gray-400 border-b border-white/10">
-                    <th className="py-2">Date</th>
-                    <th className="py-2">Type</th>
-                    <th className="py-2">Amount (₹)</th>
-                    <th className="py-2">Note</th>
-                  </tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Amount (₹)</th>
+                    <th>Note</th>
+                  </tr> 
                 </thead>
 
                 <tbody>
                   {expenses.map((e) => (
                     <tr
-                      key={e.id}
-                      className="border-b border-white/5 hover:bg-white/5 transition"
+                      key={e._id || e.id}
+                      className="border-b border-white/5 hover:bg-white/5"
                     >
-                      <td className="py-2">{e.date}</td>
-                      <td className="py-2">{e.type}</td>
-                      <td className="py-2 text-red-400">
+                      <td>{e.date}</td>
+                      <td>{e.type}</td>
+                      <td className="text-red-400">
                         {e.amount.toLocaleString()}
                       </td>
-                      <td className="py-2 text-gray-400">
+                      <td className="text-gray-400">
                         {e.note || "-"}
                       </td>
                     </tr>
@@ -224,6 +203,7 @@ const Expenses = () => {
                 </tbody>
               </table>
             </div>
+
           </div>
         </div>
       </div>
